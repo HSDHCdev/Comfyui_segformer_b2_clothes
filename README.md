@@ -1,3 +1,11 @@
+# A little fix of original repo
+Download this https://huggingface.co/mattmdjaga/segformer_b2_clothes/tree/main
+and put it into:
+\ComfyUI\models\segformer_b2_clothes
+Download this https://huggingface.co/sayeed99/segformer-b3-fashion/tree/main
+and put it into:
+\ComfyUI\models\segformer_b3_fashion
+
 # comfyui_segformer_b2_clothes
 SegFormer model fine-tuned on ATR dataset for clothes segmentation but can also be used for human segmentation!
 
