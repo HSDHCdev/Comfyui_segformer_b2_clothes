@@ -8,15 +8,48 @@ from PIL import Image,ImageOps, ImageFilter
 import torch.nn as nn
 import torch
 
-# comfy_path = os.path.dirname(folder_paths.__file__)
-# custom_nodes_path = os.path.join(comfy_path, "custom_nodes")
-
-
-# 指定本地分割模型文件夹的路径
+# Specify local model folder path
 model_folder_path = os.path.join(folder_paths.models_dir,"segformer_b2_clothes")
 
-processor = SegformerImageProcessor.from_pretrained(model_folder_path)
-model = AutoModelForSemanticSegmentation.from_pretrained(model_folder_path)
+# Initialize processor and model with proper error handling
+def load_model():
+    global processor, model
+    
+    # Check if local model exists and has required files
+    if os.path.exists(model_folder_path):
+        required_files = ['config.json', 'preprocessor_config.json']
+        has_required_files = all(os.path.exists(os.path.join(model_folder_path, f)) for f in required_files)
+        
+        if has_required_files:
+            try:
+                # Use local_files_only=True to force loading from local directory
+                processor = SegformerImageProcessor.from_pretrained(
+                    model_folder_path, 
+                    local_files_only=True
+                )
+                model = AutoModelForSemanticSegmentation.from_pretrained(
+                    model_folder_path, 
+                    local_files_only=True
+                )
+                print(f"Successfully loaded model from local path: {model_folder_path}")
+                return True
+            except Exception as e:
+                print(f"Error loading from local path: {e}")
+                print("Falling back to Hugging Face Hub...")
+    
+    # Fallback to Hugging Face Hub
+    try:
+        processor = SegformerImageProcessor.from_pretrained("mattmdjaga/segformer_b2_clothes")
+        model = AutoModelForSemanticSegmentation.from_pretrained("mattmdjaga/segformer_b2_clothes")
+        print("Successfully loaded model from Hugging Face Hub")
+        return True
+    except Exception as e:
+        print(f"Error loading from Hugging Face Hub: {e}")
+        return False
+
+# Load the model
+if not load_model():
+    raise RuntimeError("Failed to load segformer_b2_clothes model from both local and remote sources")
 
 def tensor2pil(image):
     return Image.fromarray(np.clip(255. * image.cpu().numpy().squeeze(), 0, 255).astype(np.uint8))
@@ -25,10 +58,10 @@ def tensor2pil(image):
 def pil2tensor(image):
     return torch.from_numpy(np.array(image).astype(np.float32) / 255.0).unsqueeze(0)
 
-# 切割服装
+# Cut clothing
 def get_segmentation(tensor_image):
     cloth = tensor2pil(tensor_image)
-    # 预处理和预测
+    # Preprocessing and prediction
     inputs = processor(images=cloth, return_tensors="pt")
     outputs = model(**inputs)
     logits = outputs.logits.cpu()
@@ -76,7 +109,7 @@ class segformer_b2_clothes:
         results = []
         for item in image:
         
-            # seg切割结果，衣服pil
+            # seg segmentation result, clothes pil
             pred_seg,cloth = get_segmentation(item)
             labels_to_keep = [0]
             # if background :
@@ -113,7 +146,7 @@ class segformer_b2_clothes:
                 
             mask = np.isin(pred_seg, labels_to_keep).astype(np.uint8)
             
-            # 创建agnostic-mask图像
+            # Create agnostic-mask image
             mask_image = Image.fromarray(mask * 255)
             mask_image = mask_image.convert("RGB")
             mask_image = pil2tensor(mask_image)
