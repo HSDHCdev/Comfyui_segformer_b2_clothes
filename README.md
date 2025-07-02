@@ -2,6 +2,7 @@
 Download this https://huggingface.co/mattmdjaga/segformer_b2_clothes/tree/main
 and put it into:
 \ComfyUI\models\segformer_b2_clothes
+
 Download this https://huggingface.co/sayeed99/segformer-b3-fashion/tree/main
 and put it into:
 \ComfyUI\models\segformer_b3_fashion
